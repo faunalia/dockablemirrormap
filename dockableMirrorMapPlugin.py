@@ -58,7 +58,7 @@ class DockableMirrorMapPlugin:
 		self.iface.removeToolBarIcon(self.dockableAction)
 
 	def about(self):
-		from dlgAbout import DlgAbout
+		from DlgAbout import DlgAbout
 		DlgAbout(self.iface.mainWindow()).exec_()
 
 
