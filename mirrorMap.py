@@ -67,16 +67,16 @@ class MirrorMap(QWidget):
 		gridLayout.addWidget( self.canvas, 0, 0, 1, 3 )
 
 		self.addLayerBtn = QToolButton(self)
-		self.addLayerBtn.setToolButtonStyle( Qt.ToolButtonTextBesideIcon )
-		self.addLayerBtn.setText("Add current layer")
-		self.addLayerBtn.setIcon( QIcon(":/dockablemirrormap/plus") )
+		#self.addLayerBtn.setToolButtonStyle( Qt.ToolButtonTextBesideIcon )
+		#self.addLayerBtn.setText("Add current layer")
+		self.addLayerBtn.setIcon( QIcon(":/icons/plus.png") )
 		QObject.connect(self.addLayerBtn, SIGNAL( "clicked()" ), self.addLayer)
 		gridLayout.addWidget( self.addLayerBtn, 1, 0, 1, 1 )
 
 		self.delLayerBtn = QToolButton(self)
-		self.delLayerBtn.setToolButtonStyle( Qt.ToolButtonTextBesideIcon )
-		self.delLayerBtn.setText("Remove current layer")
-		self.delLayerBtn.setIcon( QIcon(":/dockablemirrormap/minus") )
+		#self.delLayerBtn.setToolButtonStyle( Qt.ToolButtonTextBesideIcon )
+		#self.delLayerBtn.setText("Remove current layer")
+		self.delLayerBtn.setIcon( QIcon(":/icons/minus.png") )
 		QObject.connect(self.delLayerBtn, SIGNAL( "clicked()" ), self.delLayer)
 		gridLayout.addWidget( self.delLayerBtn, 1, 1, 1, 1 )
 
@@ -149,16 +149,22 @@ class MirrorMap(QWidget):
 		layer = self.iface.activeLayer()
 		if layer == None:
 			return
+
+		prevFlag = self.canvas.renderFlag()
+		self.canvas.setRenderFlag( False )
 		
 		# add the layer to the map canvas layer set
-		cl = QgsMapCanvasLayer(layer)
-		self.layerId2canvasLayer[ layer.getLayerID() ] = cl
-		self.canvasLayers.insert(0, cl)
-
+		self.canvasLayers = []
+		for l in self.iface.legendInterface().layers():
+			if l == layer or l.getLayerID() in self.layerId2canvasLayer.keys():
+				cl = QgsMapCanvasLayer( layer )
+				self.layerId2canvasLayer[ layer.getLayerID() ] = cl
+				self.canvasLayers.append( cl )
 		self.canvas.setLayerSet( self.canvasLayers )
 
 		self.refreshLayerButtons()
 		self.onExtentsChanged()
+		self.canvas.setRenderFlag( prevFlag )
 
 	def delLayer(self, layerId=None):
 		if layerId == None:
@@ -170,12 +176,16 @@ class MirrorMap(QWidget):
 		# remove the layer from the map canvas layer set
 		if not self.layerId2canvasLayer.has_key( layerId ):
 			return
+
+		prevFlag = self.canvas.renderFlag()
+		self.canvas.setRenderFlag( False )
+
 		cl = self.layerId2canvasLayer[ layerId ]
 		del self.layerId2canvasLayer[ layerId ]
 		self.canvasLayers.remove( cl )
-
 		self.canvas.setLayerSet( self.canvasLayers )
 
 		self.refreshLayerButtons()
 		self.onExtentsChanged()
+		self.canvas.setRenderFlag( prevFlag )
 

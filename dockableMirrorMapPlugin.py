@@ -37,7 +37,7 @@ class DockableMirrorMapPlugin:
 	def initGui(self):
 		self.dockableMirrors = []
 		self.lastDockableMirror = 0
-		self.dockableAction = QAction(QIcon(":/dockablemirrormap/pluginicon"), "Dockable MirrorMap", self.iface.mainWindow())
+		self.dockableAction = QAction(QIcon(":/icons/dockablemirrormap.png"), "Dockable MirrorMap", self.iface.mainWindow())
 		QObject.connect(self.dockableAction, SIGNAL("triggered()"), self.runDockableMirror)
 
 		self.aboutAction = QAction("About", self.iface.mainWindow())
