@@ -35,8 +35,12 @@ class DockableMirrorMap(QDockWidget):
 	def __init__(self, parent, iface):
 		QDockWidget.__init__(self, parent)
 		self.setAttribute(Qt.WA_DeleteOnClose)
+
 		self.mainWidget = MirrorMap(self, iface)
+		self.location = Qt.RightDockWidgetArea
+
 		self.setupUi()
+		self.connect(self, SIGNAL("dockLocationChanged(Qt::DockWidgetArea)"), self.setLocation)
 
 	def closeEvent(self, event):
 		self.emit( SIGNAL( "closed(PyQt_PyObject)" ), self )
@@ -45,6 +49,15 @@ class DockableMirrorMap(QDockWidget):
 	def setNumber(self, n=-1):
 		title = "%s #%s" % (self.TITLE, n) if n >= 0 else self.TITLE
 		self.setWindowTitle( title )
+
+	def getMirror(self):
+		return self.mainWidget
+
+	def getLocation(self):
+		return self.location
+
+	def setLocation(self, location):
+		self.location = location
 
 	def setupUi(self):
 		self.setObjectName( "dockablemirrormap_dockwidget" )

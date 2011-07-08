@@ -37,7 +37,7 @@ class DockableMirrorMapPlugin:
 	def initGui(self):
 		self.dockableMirrors = []
 		self.lastDockableMirror = 0
-		self.dockableAction = QAction(QIcon(":/icons/dockablemirrormap.png"), "Dockable MirrorMap", self.iface.mainWindow())
+		self.dockableAction = QAction(QIcon(":/plugins/DockableMirrorMap/icons/dockablemirrormap.png"), "Dockable MirrorMap", self.iface.mainWindow())
 		QObject.connect(self.dockableAction, SIGNAL("triggered()"), self.runDockableMirror)
 
 		self.aboutAction = QAction("About", self.iface.mainWindow())
@@ -49,7 +49,13 @@ class DockableMirrorMapPlugin:
 		self.iface.addPluginToMenu("Dockable MirrorMap", self.aboutAction)
 		self.iface.addToolBarIcon(self.dockableAction)
 
+		QObject.connect(self.iface, SIGNAL("projectRead()"), self.onProjectLoaded)
+		QObject.connect(QgsProject.instance(), SIGNAL("writeProject(QDomDocument &)"), self.onWriteProject)
+	
 	def unload(self):
+		QObject.disconnect(self.iface, SIGNAL("projectRead()"), self.onProjectLoaded)
+		QObject.disconnect(QgsProject.instance(), SIGNAL("writeProject(QDomDocument &)"), self.onWriteProject)
+
 		self.removeDockableMirrors()
 
 		# Remove the plugin
@@ -65,50 +71,62 @@ class DockableMirrorMapPlugin:
 	def removeDockableMirrors(self):
 		for d in list(self.dockableMirrors):
 			d.close()
+		self.dockableMirrors = []
+		self.lastDockableMirror = 0
 
 	def runDockableMirror(self):
 		from dockableMirrorMap import DockableMirrorMap
 		wdg = DockableMirrorMap(self.iface.mainWindow(), self.iface)
 
-		othersize = QGridLayout().verticalSpacing()
 		minsize = wdg.minimumSize()
 		maxsize = wdg.maximumSize()
 
-		if len(self.dockableMirrors) <= 0:
-			width = self.iface.mapCanvas().size().width()/2 - othersize
-			position = Qt.RightDockWidgetArea
-			wdg.setMinimumWidth( width )
-			wdg.setMaximumWidth( width )
+		self.setupDockWidget(wdg)		
+		self.addDockWidget(wdg)
 
-		elif len(self.dockableMirrors) == 1:
-			height = self.dockableMirrors[0].size().height()/2 - othersize/2
-			position = Qt.RightDockWidgetArea
-			wdg.setMinimumHeight( height )
-			wdg.setMaximumHeight( height )
-
-		elif len(self.dockableMirrors) == 2:
-			height = self.iface.mapCanvas().size().height()/2 - othersize/2
-			position = Qt.BottomDockWidgetArea
-			wdg.setMinimumHeight( height )
-			wdg.setMaximumHeight( height )
-
-		else:
-			position = Qt.BottomDockWidgetArea
-			wdg.setFloating( True )
-
-		self.addDockWidget(position, wdg)
 		wdg.setMinimumSize(minsize)
 		wdg.setMaximumSize(maxsize)
 
 		if wdg.isFloating():
 			wdg.move(50, 50)	# move the widget to the center
 
+	def setupDockWidget(self, wdg):
+		othersize = QGridLayout().verticalSpacing()
 
-	def addDockWidget(self, position, wdg):
+		if len(self.dockableMirrors) <= 0:
+			width = self.iface.mapCanvas().size().width()/2 - othersize
+			wdg.setLocation( Qt.RightDockWidgetArea )
+			wdg.setMinimumWidth( width )
+			wdg.setMaximumWidth( width )
+
+		elif len(self.dockableMirrors) == 1:
+			height = self.dockableMirrors[0].size().height()/2 - othersize/2
+			wdg.setLocation( Qt.RightDockWidgetArea )
+			wdg.setMinimumHeight( height )
+			wdg.setMaximumHeight( height )
+
+		elif len(self.dockableMirrors) == 2:
+			height = self.iface.mapCanvas().size().height()/2 - othersize/2
+			wdg.setLocation( Qt.BottomDockWidgetArea )
+			wdg.setMinimumHeight( height )
+			wdg.setMaximumHeight( height )
+
+		else:
+			wdg.setLocation( Qt.BottomDockWidgetArea )
+			wdg.setFloating( True )
+
+
+	def addDockWidget(self, wdg, position=None):
+		if position == None:
+			position = wdg.getLocation()
+		else:
+			wdg.setLocation( position )
+
 		mapCanvas = self.iface.mapCanvas()
 		oldSize = mapCanvas.size()
 
-		self.iface.mapCanvas().setRenderFlag(False)
+		prevFlag = mapCanvas.renderFlag()
+		mapCanvas.setRenderFlag(False)
 		self.iface.addDockWidget(position, wdg)
 
 		wdg.setNumber( self.lastDockableMirror )
@@ -121,13 +139,101 @@ class DockableMirrorMapPlugin:
 		if newSize != oldSize:
 			# trick: update the canvas size
 			mapCanvas.resize(newSize.width() - 1, newSize.height())
-			mapCanvas.setRenderFlag(True)
+			mapCanvas.setRenderFlag(prevFlag)
 			mapCanvas.resize(newSize)
 		else:
-			mapCanvas.setRenderFlag(True)
+			mapCanvas.setRenderFlag(prevFlag)
 
 
 	def onCloseDockableMirror(self, wdg):
 		if self.dockableMirrors.count( wdg ) > 0:
 			self.dockableMirrors.remove( wdg )
+
+		if len(self.dockableMirrors) <= 0:
+			self.lastDockableMirror = 0
+
+		
+	def onWriteProject(self, domproject):
+		print ">>>>>>>>>>>onWriteProject"
+		if len(self.dockableMirrors) <= 0:
+			return
+
+		QgsProject.instance().writeEntry( "DockableMirrorMap", "/numMirrors", len(self.dockableMirrors) )
+		for i, dockwidget in enumerate(self.dockableMirrors):
+			# save position and geometry
+			floating = dockwidget.isFloating()
+			QgsProject.instance().writeEntry( "DockableMirrorMap", "/mirror%s/floating" % i, floating )
+			if floating:
+				position = "%s %s" % (dockwidget.pos().x(), dockwidget.pos().y())
+			else:
+				position = u"%s" % dockwidget.getLocation()
+			QgsProject.instance().writeEntry( "DockableMirrorMap", "/mirror%s/position" % i, QString(position) )
+
+			size = "%s %s" % (dockwidget.size().width(), dockwidget.size().height())
+			QgsProject.instance().writeEntry( "DockableMirrorMap", "/mirror%s/size" % i, QString(size) )
+
+			# save the layer list
+			layerIds = QStringList() << dockwidget.getMirror().getLayerSet()
+			QgsProject.instance().writeEntry( "DockableMirrorMap", "/mirror%s/layers" % i, layerIds )
+
+
+	def onProjectLoaded(self):
+		print ">>>>>>>>>>>onReadProject"
+		# restore mirrors?
+		num, ok = QgsProject.instance().readNumEntry("DockableMirrorMap", "/numMirrors")
+		if not ok or num <= 0:
+			return
+
+		# remove all mirrors
+		self.removeDockableMirrors()
+
+		mirror2lids = {}
+		# load mirrors
+		for i in range(num):
+			if num >= 2:
+				if i == 0: 
+					prevFlag = self.iface.mapCanvas().renderFlag()
+					self.iface.mapCanvas().setRenderFlag(False)
+				elif i == num-1:
+					self.iface.mapCanvas().setRenderFlag(True)
+
+			from dockableMirrorMap import DockableMirrorMap
+			dockwidget = DockableMirrorMap(self.iface.mainWindow(), self.iface)
+
+			minsize = dockwidget.minimumSize()
+			maxsize = dockwidget.maximumSize()
+
+			# restore position
+			floating, ok = QgsProject.instance().readBoolEntry("DockableMirrorMap", "/mirror%s/floating" % i)
+			if ok: 
+				dockwidget.setFloating( floating )
+				position, ok = QgsProject.instance().readEntry("DockableMirrorMap", "/mirror%s/position" % i)
+				if ok: 
+					try:
+						if floating:
+							parts = position.split(" ")
+							if len(parts) >= 2:
+								dockwidget.move( int(parts[0]), int(parts[1]) )
+						else:
+							dockwidget.setLocation( int(position) )
+					except ValueError:
+						pass
+
+			# restore geometry
+			dockwidget.setFixedSize( dockwidget.geometry().width(), dockwidget.geometry().height() )
+			size, ok = QgsProject.instance().readEntry("DockableMirrorMap", "/mirror%s/size" % i)
+			if ok:
+				try:
+					parts = size.split(" ")
+					dockwidget.setFixedSize( int(parts[0]), int(parts[1]) )
+				except ValueError:
+					pass				
+
+			# get layer list
+			layerIds, ok = QgsProject.instance().readListEntry("DockableMirrorMap", "/mirror%s/layers" % i)
+			if ok: dockwidget.getMirror().setLayerSet( layerIds )
+
+			self.addDockWidget( dockwidget )
+			dockwidget.setMinimumSize(minsize)
+			dockwidget.setMaximumSize(maxsize)
 

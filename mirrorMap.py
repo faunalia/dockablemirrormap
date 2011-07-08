@@ -41,7 +41,7 @@ class MirrorMap(QWidget):
 
 	def closeEvent(self, event):
 		QObject.disconnect(self.iface.mapCanvas(), SIGNAL( "extentsChanged()" ), self.onExtentsChanged)
-		QObject.disconnect(self.iface.mapCanvas().mapRenderer(), SIGNAL( "destinationSrsChanged()" ), self.onSrsChanged)
+		QObject.disconnect(self.iface.mapCanvas().mapRenderer(), SIGNAL( "destinationCrsChanged()" ), self.onCrsChanged)
 		QObject.disconnect(self.iface.mapCanvas().mapRenderer(), SIGNAL( "mapUnitsChanged()" ), self.onMapUnitsChanged)
 		QObject.disconnect(self.iface.mapCanvas().mapRenderer(), SIGNAL( "hasCrsTransformEnabled(bool)" ), self.onCrsTransformEnabled)
 		QObject.disconnect(QgsMapLayerRegistry.instance(), SIGNAL( "layerWillBeRemoved(QString)" ), self.delLayer)
@@ -69,14 +69,14 @@ class MirrorMap(QWidget):
 		self.addLayerBtn = QToolButton(self)
 		#self.addLayerBtn.setToolButtonStyle( Qt.ToolButtonTextBesideIcon )
 		#self.addLayerBtn.setText("Add current layer")
-		self.addLayerBtn.setIcon( QIcon(":/icons/plus.png") )
+		self.addLayerBtn.setIcon( QIcon(":/plugins/DockableMirrorMap/icons/plus.png") )
 		QObject.connect(self.addLayerBtn, SIGNAL( "clicked()" ), self.addLayer)
 		gridLayout.addWidget( self.addLayerBtn, 1, 0, 1, 1 )
 
 		self.delLayerBtn = QToolButton(self)
 		#self.delLayerBtn.setToolButtonStyle( Qt.ToolButtonTextBesideIcon )
 		#self.delLayerBtn.setText("Remove current layer")
-		self.delLayerBtn.setIcon( QIcon(":/icons/minus.png") )
+		self.delLayerBtn.setIcon( QIcon(":/plugins/DockableMirrorMap/icons/minus.png") )
 		QObject.connect(self.delLayerBtn, SIGNAL( "clicked()" ), self.delLayer)
 		gridLayout.addWidget( self.delLayerBtn, 1, 1, 1, 1 )
 
@@ -90,8 +90,8 @@ class MirrorMap(QWidget):
 		self.canvas.setMapTool( self.toolPan )
 
 		QObject.connect(self.iface.mapCanvas(), SIGNAL( "extentsChanged()" ), self.onExtentsChanged)
-		QObject.connect(self.iface.mapCanvas().mapRenderer(), SIGNAL( "destinationSrsChanged()" ), self.onSrsChanged)
-		QObject.connect(self.iface.mapCanvas().mapRenderer(), SIGNAL( "mapUnitsChanged()" ), self.onSrsChanged)
+		QObject.connect(self.iface.mapCanvas().mapRenderer(), SIGNAL( "destinationCrsChanged()" ), self.onCrsChanged)
+		QObject.connect(self.iface.mapCanvas().mapRenderer(), SIGNAL( "mapUnitsChanged()" ), self.onCrsChanged)
 		QObject.connect(self.iface.mapCanvas().mapRenderer(), SIGNAL( "hasCrsTransformEnabled(bool)" ), self.onCrsTransformEnabled)
 		QObject.connect(QgsMapLayerRegistry.instance(), SIGNAL( "layerWillBeRemoved(QString)" ), self.delLayer)
 		QObject.connect(self.iface, SIGNAL( "currentLayerChanged(QgsMapLayer *)" ), self.refreshLayerButtons)
@@ -99,7 +99,7 @@ class MirrorMap(QWidget):
 		self.refreshLayerButtons()
 
 		self.onExtentsChanged()
-		self.onSrsChanged()
+		self.onCrsChanged()
 		self.onCrsTransformEnabled( self.iface.mapCanvas().hasCrsTransformEnabled() )
 
 	def toggleRender(self, enabled):
@@ -114,12 +114,12 @@ class MirrorMap(QWidget):
 
 		self.canvas.setRenderFlag( prevFlag )
 
-	def onSrsChanged(self):
+	def onCrsChanged(self):
 		prevFlag = self.canvas.renderFlag()
 		self.canvas.setRenderFlag( False )
 
 		renderer = self.iface.mapCanvas().mapRenderer()
-		self.canvas.mapRenderer().setDestinationSrs( renderer.destinationSrs() )
+		self._setRendererCrs( self.canvas.mapRenderer(), self._rendererCrs(renderer) )
 		self.canvas.mapRenderer().setMapUnits( renderer.mapUnits() )
 
 		self.canvas.setRenderFlag( prevFlag )
@@ -145,8 +145,34 @@ class MirrorMap(QWidget):
 		self.addLayerBtn.setEnabled( isLayerSelected and not hasLayer )
 		self.delLayerBtn.setEnabled( isLayerSelected and hasLayer )
 
-	def addLayer(self):
-		layer = self.iface.activeLayer()
+
+	def getLayerSet(self):
+		return map(lambda x: self._layerId(x.layer()), self.canvasLayers)
+
+	def setLayerSet(self, layerIds=None):
+		prevFlag = self.canvas.renderFlag()
+		self.canvas.setRenderFlag( False )
+
+		if layerIds == None:
+			self.layerId2canvasLayer = {}
+			self.canvasLayers = []
+			self.canvas.setLayerSet( [] )
+
+		else:
+			for lid in layerIds:
+				self.addLayer( lid )
+
+		self.refreshLayerButtons()
+		self.onExtentsChanged()
+		self.canvas.setRenderFlag( prevFlag )
+
+
+	def addLayer(self, layerId=None):
+		if layerId == None:
+			layer = self.iface.activeLayer()
+		else:
+			layer = QgsMapLayerRegistry.instance().mapLayer( layerId )
+
 		if layer == None:
 			return
 
@@ -155,11 +181,20 @@ class MirrorMap(QWidget):
 		
 		# add the layer to the map canvas layer set
 		self.canvasLayers = []
+		id2cl_dict = {}
 		for l in self.iface.legendInterface().layers():
-			if l == layer or l.getLayerID() in self.layerId2canvasLayer.keys():
+			lid = self._layerId(l)
+			if self.layerId2canvasLayer.has_key( lid ):	# previously added
+				cl = self.layerId2canvasLayer[ lid ]
+			elif l == layer:	# selected layer
 				cl = QgsMapCanvasLayer( layer )
-				self.layerId2canvasLayer[ layer.getLayerID() ] = cl
-				self.canvasLayers.append( cl )
+			else:
+				continue
+
+			id2cl_dict[ lid ] = cl
+			self.canvasLayers.append( cl )
+
+		self.layerId2canvasLayer = id2cl_dict
 		self.canvas.setLayerSet( self.canvasLayers )
 
 		self.refreshLayerButtons()
@@ -171,7 +206,7 @@ class MirrorMap(QWidget):
 			layer = self.iface.activeLayer()
 			if layer == None:
 				return
-			layerId = layer.getLayerID()
+			layerId = self._layerId(layer)
 
 		# remove the layer from the map canvas layer set
 		if not self.layerId2canvasLayer.has_key( layerId ):
@@ -184,8 +219,25 @@ class MirrorMap(QWidget):
 		del self.layerId2canvasLayer[ layerId ]
 		self.canvasLayers.remove( cl )
 		self.canvas.setLayerSet( self.canvasLayers )
+		del cl
 
 		self.refreshLayerButtons()
 		self.onExtentsChanged()
 		self.canvas.setRenderFlag( prevFlag )
+
+
+	def _layerId(self, layer):
+		if hasattr(layer, 'id'):
+			return layer.id()
+		return layer.getLayerID() 
+
+	def _rendererCrs(self, renderer):
+		if hasattr(renderer, 'destinationCrs'):
+			return renderer.destinationCrs()
+		return renderer.destinationSrs()
+
+	def _setRendererCrs(self, renderer, crs):
+		if hasattr(renderer, 'setDestinationCrs'):
+			return renderer.setDestinationCrs( crs )
+		return renderer.destinationSrs( crs )
 
