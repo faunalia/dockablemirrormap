@@ -27,7 +27,7 @@ def description():
 	return "Creates a dockable map canvas synchronized with the main one"
 
 def version():
-	return "0.0.7"
+	return "0.0.8"
 
 def qgisMinimumVersion():
 	return "1.5.0"
