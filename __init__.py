@@ -32,6 +32,9 @@ def version():
 def qgisMinimumVersion():
 	return "1.5.0"
 
+def icon():
+	return "icons/dockablemirrormap.png"
+
 def authorName():
 	return "Giuseppe Sucameli (Faunalia)"
 
