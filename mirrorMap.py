@@ -239,5 +239,5 @@ class MirrorMap(QWidget):
 	def _setRendererCrs(self, renderer, crs):
 		if hasattr(renderer, 'setDestinationCrs'):
 			return renderer.setDestinationCrs( crs )
-		return renderer.destinationSrs( crs )
+		return renderer.setDestinationSrs( crs )
 
