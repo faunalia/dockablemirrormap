@@ -40,7 +40,7 @@ class DockableMirrorMapPlugin:
 		self.dockableAction = QAction(QIcon(":/plugins/DockableMirrorMap/icons/dockablemirrormap.png"), "Dockable MirrorMap", self.iface.mainWindow())
 		QObject.connect(self.dockableAction, SIGNAL("triggered()"), self.runDockableMirror)
 
-		self.aboutAction = QAction("About", self.iface.mainWindow())
+		self.aboutAction = QAction(QIcon(":/plugins/DockableMirrorMap/icons/about.png"), "About", self.iface.mainWindow())
 		QObject.connect(self.aboutAction, SIGNAL("triggered()"), self.about)
 
 
