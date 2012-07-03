@@ -19,8 +19,8 @@ changelog=
 tags=map,mirror
 
 homepage=http://www.faunalia.com/
-tracker=http://hub.qgis.org/projects/closestfeaturefinder
-repository=http://hub.qgis.org/projects/closestfeaturefinder/repository
+tracker=http://hub.qgis.org/projects/dockablemirrormap
+repository=http://hub.qgis.org/projects/dockablemirrormap/repository
 
 ; path to a icon within the plugin folder
 icon=icons/dockablemirrormap.png
