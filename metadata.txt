@@ -3,7 +3,8 @@
 name=Dockable MirrorMap
 description=Creates a dockable map canvas synchronized with the main one.
     Developed with funding from Regione Toscana-SITA.
-version=0.1.2
+
+version=0.1.3
 qgisMinimumVersion=1.5.0
 
 ; not used yet, will allow to put a plugin in the right menu
