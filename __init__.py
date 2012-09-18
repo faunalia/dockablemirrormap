@@ -24,7 +24,7 @@ def name():
 	return "Dockable MirrorMap"
 
 def description():
-	return "Creates a dockable map canvas synchronized with the main one"
+	return "Creates a dockable map canvas synchronized with the main one. Developed with funding from Regione Toscana-SITA."
 
 def version():
 	return "0.1.2"
@@ -36,7 +36,7 @@ def icon():
 	return "icons/dockablemirrormap.png"
 
 def authorName():
-	return "Giuseppe Sucameli (Faunalia)"
+	return "Giuseppe Sucameli (Faunalia) for Regione Toscana"
 
 def classFactory(iface):
 	from dockableMirrorMapPlugin import DockableMirrorMapPlugin
