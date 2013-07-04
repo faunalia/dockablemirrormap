@@ -10,10 +10,12 @@ qgisMinimumVersion=1.5.0
 ; not used yet, will allow to put a plugin in the right menu
 category=Plugin
 
+author=Giuseppe Sucameli (Faunalia)
+email=sucameli@faunalia.it
+
 ; end of mandatory metadata
 
 ; start of optional metadata
-author=Giuseppe Sucameli (Faunalia) for Regione Toscana
 
 changelog=
 
