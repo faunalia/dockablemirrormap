@@ -154,7 +154,6 @@ class DockableMirrorMapPlugin:
 
 		
 	def onWriteProject(self, domproject):
-		print ">>>>>>>>>>>onWriteProject"
 		if len(self.dockableMirrors) <= 0:
 			return
 
@@ -178,7 +177,6 @@ class DockableMirrorMapPlugin:
 
 
 	def onProjectLoaded(self):
-		print ">>>>>>>>>>>onReadProject"
 		# restore mirrors?
 		num, ok = QgsProject.instance().readNumEntry("DockableMirrorMap", "/numMirrors")
 		if not ok or num <= 0:
