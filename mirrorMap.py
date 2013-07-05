@@ -59,10 +59,10 @@ class MirrorMap(QWidget):
 		self.canvas = QgsMapCanvas( self )
 		self.canvas.setCanvasColor( QColor(255,255,255) )
 		settings = QSettings()
-		self.canvas.enableAntiAliasing( settings.value( "/qgis/enable_anti_aliasing", QVariant(False) ).toBool() )
-		self.canvas.useImageToRender( settings.value( "/qgis/use_qimage_to_render", QVariant(False) ).toBool() )
-		action = settings.value( "/qgis/wheel_action", QVariant(0) ).toInt()[0]
-		zoomFactor = settings.value( "/qgis/zoom_factor", QVariant(2) ).toDouble()[0]
+		self.canvas.enableAntiAliasing( settings.value( "/qgis/enable_anti_aliasing", False, type=bool ))
+		self.canvas.useImageToRender( settings.value( "/qgis/use_qimage_to_render", False, type=bool ))
+		action = settings.value( "/qgis/wheel_action", 0, type=int)
+		zoomFactor = settings.value( "/qgis/zoom_factor", 2, type=int )
 		self.canvas.setWheelAction( QgsMapCanvas.WheelAction(action), zoomFactor )
 		gridLayout.addWidget( self.canvas, 0, 0, 1, 3 )
 

@@ -4,8 +4,8 @@ name=Dockable MirrorMap
 description=Creates a dockable map canvas synchronized with the main one.
     Developed with funding from Regione Toscana-SITA.
 
-version=0.1.3
-qgisMinimumVersion=1.5.0
+version=0.2.3
+qgisMinimumVersion=2.0
 
 ; not used yet, will allow to put a plugin in the right menu
 category=Plugin
@@ -17,7 +17,7 @@ email=sucameli@faunalia.it
 
 ; start of optional metadata
 
-changelog=
+changelog=Ported to sip API 2.0
 
 ; tags are in comma separated value format, spaces are allowed
 tags=map,mirror
