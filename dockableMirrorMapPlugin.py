@@ -172,8 +172,7 @@ class DockableMirrorMapPlugin:
 			QgsProject.instance().writeEntry( "DockableMirrorMap", "/mirror%s/size" % i, str(size) )
 
 			# save the layer list
-			layerIds = []
-			layerIds.append(dockwidget.getMirror().getLayerSet())
+			layerIds = dockwidget.getMirror().getLayerSet()
 			QgsProject.instance().writeEntry( "DockableMirrorMap", "/mirror%s/layers" % i, layerIds )
 
 
