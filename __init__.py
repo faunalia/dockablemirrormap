@@ -27,10 +27,10 @@ def description():
 	return "Creates a dockable map canvas synchronized with the main one. Developed with funding from Regione Toscana-SITA."
 
 def version():
-	return "0.1.3"
+	return "0.2.5"
 
 def qgisMinimumVersion():
-	return "1.5.0"
+	return "2.0"
 
 def icon():
 	return "icons/dockablemirrormap.png"
