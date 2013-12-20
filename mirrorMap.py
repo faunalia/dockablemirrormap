@@ -64,7 +64,7 @@ class MirrorMap(QWidget):
 		action = settings.value( "/qgis/wheel_action", 0, type=int)
 		zoomFactor = settings.value( "/qgis/zoom_factor", 2.0, type=float )
 		self.canvas.setWheelAction( QgsMapCanvas.WheelAction(action), zoomFactor )
-		gridLayout.addWidget( self.canvas, 0, 0, 1, 3 )
+		gridLayout.addWidget( self.canvas, 0, 0, 1, 5 )
 
 		self.addLayerBtn = QToolButton(self)
 		#self.addLayerBtn.setToolButtonStyle( Qt.ToolButtonTextBesideIcon )
@@ -84,6 +84,19 @@ class MirrorMap(QWidget):
 		QObject.connect(self.renderCheck, SIGNAL( "toggled(bool)" ), self.toggleRender)
 		self.renderCheck.setChecked(True)
 		gridLayout.addWidget( self.renderCheck, 1, 2, 1, 1 )
+
+		self.scaleFactorLabel = QLabel(self)
+		self.scaleFactorLabel.setText("Scale factor:")
+		gridLayout.addWidget(self.scaleFactorLabel, 1, 3, 1, 1)
+		self.scaleFactor = QDoubleSpinBox(self)
+		self.scaleFactor.setMinimum(0.001)
+		self.scaleFactor.setMaximum(1000.0)
+		self.scaleFactor.setDecimals(3)
+		self.scaleFactor.setProperty("value", 1.0)
+		self.scaleFactor.setObjectName("scaleFactor")
+		self.scaleFactor.setSingleStep(.1)
+		gridLayout.addWidget(self.scaleFactor, 1, 4, 1, 1)
+		self.scaleFactor.valueChanged.connect(self.onExtentsChanged)
 
 		# Add a default pan tool
 		self.toolPan = QgsMapToolPan( self.canvas )
@@ -110,7 +123,7 @@ class MirrorMap(QWidget):
 		self.canvas.setRenderFlag( False )
 
 		self.canvas.setExtent( self.iface.mapCanvas().extent() )
-		self.canvas.zoomScale( self.iface.mapCanvas().scale() )
+		self.canvas.zoomScale( self.iface.mapCanvas().scale() * self.scaleFactor.value())
 
 		self.canvas.setRenderFlag( prevFlag )
 
