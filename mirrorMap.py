@@ -87,14 +87,15 @@ class MirrorMap(QWidget):
 
 		self.scaleFactorLabel = QLabel(self)
 		self.scaleFactorLabel.setText("Scale factor:")
+		self.scaleFactorLabel.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
 		gridLayout.addWidget(self.scaleFactorLabel, 1, 3, 1, 1)
 		self.scaleFactor = QDoubleSpinBox(self)
-		self.scaleFactor.setMinimum(0.001)
+		self.scaleFactor.setMinimum(0.0)
 		self.scaleFactor.setMaximum(1000.0)
 		self.scaleFactor.setDecimals(3)
 		self.scaleFactor.setProperty("value", 1.0)
 		self.scaleFactor.setObjectName("scaleFactor")
-		self.scaleFactor.setSingleStep(.1)
+		self.scaleFactor.setSingleStep(.05)
 		gridLayout.addWidget(self.scaleFactor, 1, 4, 1, 1)
 		self.scaleFactor.valueChanged.connect(self.onExtentsChanged)
 
@@ -123,7 +124,7 @@ class MirrorMap(QWidget):
 		self.canvas.setRenderFlag( False )
 
 		self.canvas.setExtent( self.iface.mapCanvas().extent() )
-		self.canvas.zoomScale( self.iface.mapCanvas().scale() * self.scaleFactor.value())
+		self.canvas.zoomByFactor( self.scaleFactor.value() )
 
 		self.canvas.setRenderFlag( prevFlag )
 
