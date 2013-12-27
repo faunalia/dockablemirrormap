@@ -40,6 +40,7 @@ class MirrorMap(QWidget):
 		self.setupUi()
 
 	def closeEvent(self, event):
+		self.scaleFactor.valueChanged.disconnect(self.onExtentsChanged)
 		QObject.disconnect(self.iface.mapCanvas(), SIGNAL( "extentsChanged()" ), self.onExtentsChanged)
 		QObject.disconnect(self.iface.mapCanvas().mapRenderer(), SIGNAL( "destinationCrsChanged()" ), self.onCrsChanged)
 		QObject.disconnect(self.iface.mapCanvas().mapRenderer(), SIGNAL( "mapUnitsChanged()" ), self.onMapUnitsChanged)
@@ -93,7 +94,7 @@ class MirrorMap(QWidget):
 		self.scaleFactor.setMinimum(0.0)
 		self.scaleFactor.setMaximum(1000.0)
 		self.scaleFactor.setDecimals(3)
-		self.scaleFactor.setProperty("value", 1.0)
+		self.scaleFactor.setValue(1)
 		self.scaleFactor.setObjectName("scaleFactor")
 		self.scaleFactor.setSingleStep(.05)
 		gridLayout.addWidget(self.scaleFactor, 1, 4, 1, 1)
