@@ -3,3 +3,4 @@ DockableMirrorMap plugin - TODO - Jan 14, 2014
 
 Move exiting options (e.g. zoom scale factor) to a new menu activated by a 
 button in the bottom bar to keep the dockable widgets' size minimum. (GS)
+Connect mouse zoom to the scale factor
