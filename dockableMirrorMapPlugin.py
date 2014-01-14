@@ -175,6 +175,8 @@ class DockableMirrorMapPlugin:
 			layerIds = dockwidget.getMirror().getLayerSet()
 			QgsProject.instance().writeEntry( "DockableMirrorMap", "/mirror%s/layers" % i, layerIds )
 
+			scaleFactor = dockwidget.getMirror().scaleFactor.value()
+			QgsProject.instance().writeEntryDouble("DockableMirrorMap", "/mirror%s/scaleFactor" % i, scaleFactor)
 
 	def onProjectLoaded(self):
 		# restore mirrors?
@@ -226,6 +228,9 @@ class DockableMirrorMapPlugin:
 					dockwidget.setFixedSize( int(parts[0]), int(parts[1]) )
 				except ValueError:
 					pass				
+
+			scaleFactor, ok = QgsProject.instance().readDoubleEntry("DockableMirrorMap", "/mirror%s/scaleFactor" % i, 1.0)
+			if ok: dockwidget.getMirror().scaleFactor.setValue( scaleFactor )
 
 			# get layer list
 			layerIds, ok = QgsProject.instance().readListEntry("DockableMirrorMap", "/mirror%s/layers" % i)
