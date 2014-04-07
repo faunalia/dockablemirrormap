@@ -11,7 +11,7 @@ qgisMinimumVersion=2.0
 category=Plugin
 
 author=Giuseppe Sucameli (Faunalia)
-email=sucameli@faunalia.it
+email=info@faunalia.eu
 
 ; end of mandatory metadata
 
