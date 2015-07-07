@@ -34,8 +34,7 @@ class MirrorMap(QWidget):
 		self.setAttribute(Qt.WA_DeleteOnClose)
 
 		self.iface = iface
-		self.layerId2canvasLayer = {}
-		self.canvasLayers = []
+		self.layers = {}
 
 		self.setupUi()
 
@@ -46,7 +45,11 @@ class MirrorMap(QWidget):
 		QObject.disconnect(self.iface.mapCanvas().mapRenderer(), SIGNAL( "mapUnitsChanged()" ), self.onMapUnitsChanged)
 		QObject.disconnect(self.iface.mapCanvas().mapRenderer(), SIGNAL( "hasCrsTransformEnabled(bool)" ), self.onCrsTransformEnabled)
 		QObject.disconnect(QgsMapLayerRegistry.instance(), SIGNAL( "layerWillBeRemoved(QString)" ), self.delLayer)
-		QObject.disconnect(self.iface, SIGNAL( "currentLayerChanged(QgsMapLayer *)" ), self.refreshLayerButtons)
+
+		if QGis.QGIS_VERSION_INT >= 20400:
+			self.iface.layerTreeView().selectionModel().selectionChanged.disconnect(self.refreshLayerButtons)
+		else:
+			self.iface.currentLayerChanged.disconnect(self.refreshLayerButtons)
 
 		self.emit( SIGNAL( "closed(PyQt_PyObject)" ), self )
 		return QWidget.closeEvent(self, event)
@@ -65,7 +68,7 @@ class MirrorMap(QWidget):
 		action = settings.value( "/qgis/wheel_action", 0, type=int)
 		zoomFactor = settings.value( "/qgis/zoom_factor", 2.0, type=float )
 		self.canvas.setWheelAction( QgsMapCanvas.WheelAction(action), zoomFactor )
-		gridLayout.addWidget( self.canvas, 0, 0, 1, 5 )
+		gridLayout.addWidget( self.canvas, 0, 0, 1, 6 )
 
 		self.addLayerBtn = QToolButton(self)
 		#self.addLayerBtn.setToolButtonStyle( Qt.ToolButtonTextBesideIcon )
@@ -73,6 +76,7 @@ class MirrorMap(QWidget):
 		self.addLayerBtn.setIcon( QIcon(":/plugins/DockableMirrorMap/icons/plus.png") )
 		QObject.connect(self.addLayerBtn, SIGNAL( "clicked()" ), self.addLayer)
 		gridLayout.addWidget( self.addLayerBtn, 1, 0, 1, 1 )
+		self.addLayerBtn.setAutoRaise(True)
 
 		self.delLayerBtn = QToolButton(self)
 		#self.delLayerBtn.setToolButtonStyle( Qt.ToolButtonTextBesideIcon )
@@ -80,16 +84,25 @@ class MirrorMap(QWidget):
 		self.delLayerBtn.setIcon( QIcon(":/plugins/DockableMirrorMap/icons/minus.png") )
 		QObject.connect(self.delLayerBtn, SIGNAL( "clicked()" ), self.delLayer)
 		gridLayout.addWidget( self.delLayerBtn, 1, 1, 1, 1 )
+		self.delLayerBtn.setAutoRaise(True)
+
+		self.styleMenu = QMenu(self)
+		self.styleBtn = QPushButton("Layer Style", self)
+		self.styleBtn.setMenu(self.styleMenu)
+		self.styleBtn.setSizePolicy(QSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed))
+		gridLayout.addWidget(self.styleBtn, 1, 2, 1, 1)
+		if QGis.QGIS_VERSION_INT < 21100:
+			self.styleBtn.hide()
 
 		self.renderCheck = QCheckBox( "Render", self )
 		QObject.connect(self.renderCheck, SIGNAL( "toggled(bool)" ), self.toggleRender)
 		self.renderCheck.setChecked(True)
-		gridLayout.addWidget( self.renderCheck, 1, 2, 1, 1 )
+		gridLayout.addWidget( self.renderCheck, 1, 3, 1, 1 )
 
 		self.scaleFactorLabel = QLabel(self)
 		self.scaleFactorLabel.setText("Scale factor:")
 		self.scaleFactorLabel.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
-		gridLayout.addWidget(self.scaleFactorLabel, 1, 3, 1, 1)
+		gridLayout.addWidget(self.scaleFactorLabel, 1, 4, 1, 1)
 		self.scaleFactor = QDoubleSpinBox(self)
 		self.scaleFactor.setMinimum(0.0)
 		self.scaleFactor.setMaximum(1000.0)
@@ -97,7 +110,7 @@ class MirrorMap(QWidget):
 		self.scaleFactor.setValue(1)
 		self.scaleFactor.setObjectName("scaleFactor")
 		self.scaleFactor.setSingleStep(.05)
-		gridLayout.addWidget(self.scaleFactor, 1, 4, 1, 1)
+		gridLayout.addWidget(self.scaleFactor, 1, 5, 1, 1)
 		self.scaleFactor.valueChanged.connect(self.onExtentsChanged)
 
 		# Add a default pan tool
@@ -109,7 +122,10 @@ class MirrorMap(QWidget):
 		QObject.connect(self.iface.mapCanvas().mapRenderer(), SIGNAL( "mapUnitsChanged()" ), self.onCrsChanged)
 		QObject.connect(self.iface.mapCanvas().mapRenderer(), SIGNAL( "hasCrsTransformEnabled(bool)" ), self.onCrsTransformEnabled)
 		QObject.connect(QgsMapLayerRegistry.instance(), SIGNAL( "layerWillBeRemoved(QString)" ), self.delLayer)
-		QObject.connect(self.iface, SIGNAL( "currentLayerChanged(QgsMapLayer *)" ), self.refreshLayerButtons)
+		if QGis.QGIS_VERSION_INT >= 20400:
+			self.iface.layerTreeView().selectionModel().selectionChanged.connect(self.refreshLayerButtons)
+		else:
+			self.iface.currentLayerChanged.connect(self.refreshLayerButtons)
 
 		self.refreshLayerButtons()
 
@@ -121,138 +137,143 @@ class MirrorMap(QWidget):
 		self.canvas.setRenderFlag( enabled )
 
 	def onExtentsChanged(self):
-		prevFlag = self.canvas.renderFlag()
-		self.canvas.setRenderFlag( False )
-
 		self.canvas.setExtent( self.iface.mapCanvas().extent() )
 		self.canvas.zoomByFactor( self.scaleFactor.value() )
 
-		self.canvas.setRenderFlag( prevFlag )
-
 	def onCrsChanged(self):
-		prevFlag = self.canvas.renderFlag()
-		self.canvas.setRenderFlag( False )
-
 		renderer = self.iface.mapCanvas().mapRenderer()
-		self._setRendererCrs( self.canvas.mapRenderer(), self._rendererCrs(renderer) )
+		self.canvas.mapRenderer().setDestinationCrs( renderer.destinationCrs() )
 		self.canvas.mapRenderer().setMapUnits( renderer.mapUnits() )
 
-		self.canvas.setRenderFlag( prevFlag )
-
 	def onCrsTransformEnabled(self, enabled):
-		prevFlag = self.canvas.renderFlag()
-		self.canvas.setRenderFlag( False )
-
 		self.canvas.mapRenderer().setProjectionsEnabled( enabled )
-
-		self.canvas.setRenderFlag( prevFlag )
 
 
 	def refreshLayerButtons(self):
-		layer = self.iface.activeLayer()
+		has_layers_to_add = False
+		has_layers_to_remove = False
+		sel_layers = self._selectedLayers()
+		for layerId in sel_layers:
+			if layerId in self.layers:
+				has_layers_to_remove = True
+			else:
+				has_layers_to_add = True
 
-		isLayerSelected = layer != None
-		hasLayer = False
-		for l in self.canvas.layers():
-			if l == layer:
-				hasLayer = True
-				break
-		self.addLayerBtn.setEnabled( isLayerSelected and not hasLayer )
-		self.delLayerBtn.setEnabled( isLayerSelected and hasLayer )
+		self.addLayerBtn.setEnabled(has_layers_to_add)
+		self.delLayerBtn.setEnabled(has_layers_to_remove)
 
+		if QGis.QGIS_VERSION_INT >= 21100:
+			if len(sel_layers) == 1 and sel_layers[0] in self.layers:
+				layer = QgsMapLayerRegistry.instance().mapLayer(sel_layers[0])
+				self._populateLayerStylesMenu(layer)
+			else:
+				self._populateLayerStylesMenu(None)
+
+	def setLayerStyle(self):
+		sel_layers = self._selectedLayers()
+		if len(sel_layers) != 1:
+			return
+		layer = QgsMapLayerRegistry.instance().mapLayer(sel_layers[0])
+
+		styleName = self.sender().text()
+		if styleName == "(default)":
+			styleName = ""
+		overrides = self.canvas.layerStyleOverrides()
+		if styleName == "(use current)":
+			if layer.id() in overrides:
+				del overrides[layer.id()]
+		else:
+			overrides[layer.id()] = layer.styleManager().style(styleName).xmlData()
+		self.canvas.setLayerStyleOverrides(overrides)
+		self.canvas.refresh()
+		self.refreshLayerButtons()
 
 	def getLayerSet(self):
-		return map(lambda x: self._layerId(x.layer()), self.canvasLayers)
+		return self.layers.keys()
 
 	def setLayerSet(self, layerIds=None):
-		prevFlag = self.canvas.renderFlag()
-		self.canvas.setRenderFlag( False )
-
-		if layerIds == None:
-			self.layerId2canvasLayer = {}
-			self.canvasLayers = []
-			self.canvas.setLayerSet( [] )
-
-		else:
+		self.layers = {}
+		if layerIds is not None:
 			for lid in layerIds:
-				self.addLayer( lid )
+				self.layers[lid] = 1
 
-		self.refreshLayerButtons()
-		self.onExtentsChanged()
-		self.canvas.setRenderFlag( prevFlag )
+		self._updateCanvasLayers()
 
 
-	def addLayer(self, layerId=None):
-		if layerId == None:
-			layer = self.iface.activeLayer()
-		else:
-			layer = QgsMapLayerRegistry.instance().mapLayer( layerId )
-
-		if layer == None:
-			return
-
-		prevFlag = self.canvas.renderFlag()
-		self.canvas.setRenderFlag( False )
-		
-		# add the layer to the map canvas layer set
-		self.canvasLayers = []
-		id2cl_dict = {}
-		for l in self.iface.legendInterface().layers():
-			lid = self._layerId(l)
-			if self.layerId2canvasLayer.has_key( lid ):	# previously added
-				cl = self.layerId2canvasLayer[ lid ]
-			elif l == layer:	# selected layer
-				cl = QgsMapCanvasLayer( layer )
-			else:
-				continue
-
-			id2cl_dict[ lid ] = cl
-			self.canvasLayers.append( cl )
-
-		self.layerId2canvasLayer = id2cl_dict
-		self.canvas.setLayerSet( self.canvasLayers )
-
-		self.refreshLayerButtons()
-		self.onExtentsChanged()
-		self.canvas.setRenderFlag( prevFlag )
+	def addLayer(self):
+		for layerId in self._selectedLayers():
+			self.layers[layerId] = 1
+		self._updateCanvasLayers()
 
 	def delLayer(self, layerId=None):
-		if layerId == None:
-			layer = self.iface.activeLayer()
-			if layer == None:
-				return
-			layerId = self._layerId(layer)
+		if layerId is None:
+			layers = self._selectedLayers()
+		else:
+			layers = [layerId]
 
-		# remove the layer from the map canvas layer set
-		if not self.layerId2canvasLayer.has_key( layerId ):
-			return
+		for layerId in layers:
+			if layerId in self.layers:
+				del self.layers[layerId]
+		self._updateCanvasLayers()
 
-		prevFlag = self.canvas.renderFlag()
-		self.canvas.setRenderFlag( False )
+	def _updateCanvasLayers(self):
 
-		cl = self.layerId2canvasLayer[ layerId ]
-		del self.layerId2canvasLayer[ layerId ]
-		self.canvasLayers.remove( cl )
-		self.canvas.setLayerSet( self.canvasLayers )
-		del cl
+		canvas_layers = []
+		for l in self.iface.legendInterface().layers():
+			if l.id() in self.layers:
+				canvas_layers.append(QgsMapCanvasLayer(l))
+
+		self.canvas.setLayerSet(canvas_layers)
 
 		self.refreshLayerButtons()
 		self.onExtentsChanged()
-		self.canvas.setRenderFlag( prevFlag )
 
+	def _selectedLayers(self):
+		if QGis.QGIS_VERSION_INT >= 20400:
+			return self._selectedLayers_new()
+		else:
+			return self._selectedLayers_old()
 
-	def _layerId(self, layer):
-		if hasattr(layer, 'id'):
-			return layer.id()
-		return layer.getLayerID() 
+	def _selectedLayers_new(self):
+		lst = []
+		for n in self.iface.layerTreeView().selectedNodes():
+			if isinstance(n, QgsLayerTreeLayer) and n.layer():
+				lst.append(n.layer().id())
+			elif isinstance(n, QgsLayerTreeGroup):
+				lst += n.findLayerIds()
 
-	def _rendererCrs(self, renderer):
-		if hasattr(renderer, 'destinationCrs'):
-			return renderer.destinationCrs()
-		return renderer.destinationSrs()
+		return lst
 
-	def _setRendererCrs(self, renderer, crs):
-		if hasattr(renderer, 'setDestinationCrs'):
-			return renderer.setDestinationCrs( crs )
-		return renderer.setDestinationSrs( crs )
+	def _selectedLayers_old(self):
+		layer = self.iface.activeLayer()
+		return [layer.id()] if layer else []
 
+	def _currentStyleName(self, layer):
+		overrides = self.canvas.layerStyleOverrides()
+		if layer.id() not in overrides:
+			return "__current__"  # special value if not overridden
+
+		for style_name in layer.styleManager().styles():
+			if layer.styleManager().style(style_name).xmlData() == overrides[layer.id()]:
+				return style_name
+
+	def _populateLayerStylesMenu(self, layer):
+		if layer is None or len(layer.styleManager().styles()) <= 1:
+			self.styleBtn.setEnabled(False)
+			return
+
+		self.styleBtn.setEnabled(True)
+		cur_style_name = self._currentStyleName(layer)
+		self.styleMenu.clear()
+
+		a = self.styleMenu.addAction("(use current)", self.setLayerStyle)
+		a.setCheckable(True)
+		a.setChecked(cur_style_name == "__current__")
+		self.styleMenu.addSeparator()
+
+		for style_name in layer.styleManager().styles():
+			is_current = style_name == cur_style_name
+			if len(style_name) == 0: style_name = "(default)"
+			a = self.styleMenu.addAction(style_name, self.setLayerStyle)
+			a.setCheckable(True)
+			a.setChecked(is_current)
