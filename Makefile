@@ -21,4 +21,4 @@ clean:
 	rm -f $(GEN_FILES) *.pyc
 
 package:
-	make all && cd .. && rm -f DockableMirrorMap.zip && zip -r DockableMirrorMap.zip DockableMirrorMap -x \*.svn* -x \*.pyc -x \*~ -x \*entries\* -x \*.git\*
+	make all && cd .. && rm -f DockableMirrorMap.zip && zip -r DockableMirrorMap.zip DockableMirrorMap -x \*.svn* -x \*.pyc -x \*~ -x \*entries\* -x \*.git\* \*.idea\*
