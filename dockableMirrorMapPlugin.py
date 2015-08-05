@@ -182,7 +182,7 @@ class DockableMirrorMapPlugin:
 			if QGis.QGIS_VERSION_INT >= 21100:
 				keys = []
 				values = []
-				for k,v in dockwidget.getMirror().canvas.layerStyleOverrides().iteritems():
+				for k,v in dockwidget.getMirror().overrides.iteritems():
 					keys.append(k)
 					values.append(v)
 				QgsProject.instance().writeEntry("DockableMirrorMap", "/mirror%s/layerStylesKeys" % i, keys)
@@ -251,8 +251,8 @@ class DockableMirrorMapPlugin:
 				keys, ok = QgsProject.instance().readListEntry("DockableMirrorMap", "/mirror%s/layerStylesKeys" % i)
 				values, ok = QgsProject.instance().readListEntry("DockableMirrorMap", "/mirror%s/layerStylesValues" % i)
 				if ok and len(keys) == len(values):
-					overrides = dict(zip(keys, values))
-					dockwidget.getMirror().canvas.setLayerStyleOverrides(overrides)
+					dockwidget.getMirror().overrides = dict(zip(keys, values))
+					dockwidget.getMirror().updateStyleOverrides()
 
 			self.addDockWidget( dockwidget )
 			dockwidget.setMinimumSize(minsize)

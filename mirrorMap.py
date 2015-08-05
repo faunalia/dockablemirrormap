@@ -35,6 +35,7 @@ class MirrorMap(QWidget):
 
 		self.iface = iface
 		self.layers = {}
+		self.overrides = {}  # key = layer ID, value = XML data with layer style
 
 		self.setupUi()
 
@@ -178,13 +179,12 @@ class MirrorMap(QWidget):
 		styleName = self.sender().text()
 		if styleName == "(default)":
 			styleName = ""
-		overrides = self.canvas.layerStyleOverrides()
 		if styleName == "(use current)":
-			if layer.id() in overrides:
-				del overrides[layer.id()]
+			if layer.id() in self.overrides:
+				del self.overrides[layer.id()]
 		else:
-			overrides[layer.id()] = layer.styleManager().style(styleName).xmlData()
-		self.canvas.setLayerStyleOverrides(overrides)
+			self.overrides[layer.id()] = layer.styleManager().style(styleName).xmlData()
+		self.updateStyleOverrides()
 		self.canvas.refresh()
 		self.refreshLayerButtons()
 
@@ -215,6 +215,9 @@ class MirrorMap(QWidget):
 			if layerId in self.layers:
 				del self.layers[layerId]
 		self._updateCanvasLayers()
+
+	def updateStyleOverrides(self):
+		self.canvas.setLayerStyleOverrides(self.overrides)
 
 	def _updateCanvasLayers(self):
 
@@ -249,12 +252,11 @@ class MirrorMap(QWidget):
 		return [layer.id()] if layer else []
 
 	def _currentStyleName(self, layer):
-		overrides = self.canvas.layerStyleOverrides()
-		if layer.id() not in overrides:
+		if layer.id() not in self.overrides:
 			return "__current__"  # special value if not overridden
 
 		for style_name in layer.styleManager().styles():
-			if layer.styleManager().style(style_name).xmlData() == overrides[layer.id()]:
+			if layer.styleManager().style(style_name).xmlData() == self.overrides[layer.id()]:
 				return style_name
 
 	def _populateLayerStylesMenu(self, layer):
