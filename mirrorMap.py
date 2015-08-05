@@ -36,6 +36,7 @@ class MirrorMap(QWidget):
 		self.iface = iface
 		self.layers = {}
 		self.overrides = {}  # key = layer ID, value = XML data with layer style
+		self.label = '' # extra label to be shown in the dock header
 
 		self.setupUi()
 
@@ -69,19 +70,17 @@ class MirrorMap(QWidget):
 		action = settings.value( "/qgis/wheel_action", 0, type=int)
 		zoomFactor = settings.value( "/qgis/zoom_factor", 2.0, type=float )
 		self.canvas.setWheelAction( QgsMapCanvas.WheelAction(action), zoomFactor )
-		gridLayout.addWidget( self.canvas, 0, 0, 1, 6 )
+		gridLayout.addWidget( self.canvas, 0, 0, 1, 7 )
 
 		self.addLayerBtn = QToolButton(self)
-		#self.addLayerBtn.setToolButtonStyle( Qt.ToolButtonTextBesideIcon )
-		#self.addLayerBtn.setText("Add current layer")
+		self.addLayerBtn.setToolTip("Add current layer or group")
 		self.addLayerBtn.setIcon( QIcon(":/plugins/DockableMirrorMap/icons/plus.png") )
 		QObject.connect(self.addLayerBtn, SIGNAL( "clicked()" ), self.addLayer)
 		gridLayout.addWidget( self.addLayerBtn, 1, 0, 1, 1 )
 		self.addLayerBtn.setAutoRaise(True)
 
 		self.delLayerBtn = QToolButton(self)
-		#self.delLayerBtn.setToolButtonStyle( Qt.ToolButtonTextBesideIcon )
-		#self.delLayerBtn.setText("Remove current layer")
+		self.delLayerBtn.setToolTip("Remove current layer or group")
 		self.delLayerBtn.setIcon( QIcon(":/plugins/DockableMirrorMap/icons/minus.png") )
 		QObject.connect(self.delLayerBtn, SIGNAL( "clicked()" ), self.delLayer)
 		gridLayout.addWidget( self.delLayerBtn, 1, 1, 1, 1 )
@@ -113,6 +112,13 @@ class MirrorMap(QWidget):
 		self.scaleFactor.setSingleStep(.05)
 		gridLayout.addWidget(self.scaleFactor, 1, 5, 1, 1)
 		self.scaleFactor.valueChanged.connect(self.onExtentsChanged)
+
+		self.editLabelBtn = QToolButton(self)
+		self.editLabelBtn.setToolTip("Edit map label")
+		self.editLabelBtn.setIcon( QgsApplication.getThemeIcon("mActionOptions.svg") )
+		QObject.connect(self.editLabelBtn, SIGNAL( "clicked()" ), self.editLabel)
+		gridLayout.addWidget( self.editLabelBtn, 1, 6, 1, 1 )
+		self.editLabelBtn.setAutoRaise(True)
 
 		# Add a default pan tool
 		self.toolPan = QgsMapToolPan( self.canvas )
@@ -215,6 +221,13 @@ class MirrorMap(QWidget):
 			if layerId in self.layers:
 				del self.layers[layerId]
 		self._updateCanvasLayers()
+
+	def editLabel(self):
+		label, ok = QInputDialog.getText(self, "MirrorMap Label", "Please enter label for this mirror map:", QLineEdit.Normal, self.label)
+		if ok:
+			self.label = label
+			self.parent().updateLabel()
+
 
 	def updateStyleOverrides(self):
 		self.canvas.setLayerStyleOverrides(self.overrides)

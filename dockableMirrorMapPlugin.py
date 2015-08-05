@@ -171,6 +171,8 @@ class DockableMirrorMapPlugin:
 			size = "%s %s" % (dockwidget.size().width(), dockwidget.size().height())
 			QgsProject.instance().writeEntry( "DockableMirrorMap", "/mirror%s/size" % i, str(size) )
 
+			QgsProject.instance().writeEntry( "DockableMirrorMap", "/mirror%s/label" % i, dockwidget.getMirror().label )
+
 			# save the layer list
 			layerIds = dockwidget.getMirror().getLayerSet()
 			QgsProject.instance().writeEntry( "DockableMirrorMap", "/mirror%s/layers" % i, layerIds )
@@ -238,6 +240,10 @@ class DockableMirrorMapPlugin:
 					dockwidget.setFixedSize( int(parts[0]), int(parts[1]) )
 				except ValueError:
 					pass				
+
+			label, ok = QgsProject.instance().readEntry( "DockableMirrorMap", "/mirror%s/label" % i )
+			if ok:
+				dockwidget.getMirror().label = label
 
 			scaleFactor, ok = QgsProject.instance().readDoubleEntry("DockableMirrorMap", "/mirror%s/scaleFactor" % i, 1.0)
 			if ok: dockwidget.getMirror().scaleFactor.setValue( scaleFactor )
