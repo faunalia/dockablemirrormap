@@ -31,7 +31,6 @@ class MirrorMap(QWidget):
 
 	def __init__(self, parent, iface):
 		QWidget.__init__(self, parent)
-		self.setAttribute(Qt.WA_DeleteOnClose)
 
 		self.iface = iface
 		self.layers = {}
@@ -39,22 +38,6 @@ class MirrorMap(QWidget):
 		self.label = '' # extra label to be shown in the dock header
 
 		self.setupUi()
-
-	def closeEvent(self, event):
-		self.scaleFactor.valueChanged.disconnect(self.onExtentsChanged)
-		QObject.disconnect(self.iface.mapCanvas(), SIGNAL( "extentsChanged()" ), self.onExtentsChanged)
-		QObject.disconnect(self.iface.mapCanvas().mapRenderer(), SIGNAL( "destinationCrsChanged()" ), self.onCrsChanged)
-		QObject.disconnect(self.iface.mapCanvas().mapRenderer(), SIGNAL( "mapUnitsChanged()" ), self.onMapUnitsChanged)
-		QObject.disconnect(self.iface.mapCanvas().mapRenderer(), SIGNAL( "hasCrsTransformEnabled(bool)" ), self.onCrsTransformEnabled)
-		QObject.disconnect(QgsMapLayerRegistry.instance(), SIGNAL( "layerWillBeRemoved(QString)" ), self.delLayer)
-
-		if QGis.QGIS_VERSION_INT >= 20400:
-			self.iface.layerTreeView().selectionModel().selectionChanged.disconnect(self.refreshLayerButtons)
-		else:
-			self.iface.currentLayerChanged.disconnect(self.refreshLayerButtons)
-
-		self.emit( SIGNAL( "closed(PyQt_PyObject)" ), self )
-		return QWidget.closeEvent(self, event)
 
 	def setupUi(self):
 		self.setObjectName( "dockablemirrormap_mirrormap" )

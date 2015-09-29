@@ -34,7 +34,6 @@ class DockableMirrorMap(QDockWidget):
 
 	def __init__(self, parent, iface):
 		QDockWidget.__init__(self, parent)
-		self.setAttribute(Qt.WA_DeleteOnClose)
 
 		self.mainWidget = MirrorMap(self, iface)
 		self.location = Qt.RightDockWidgetArea

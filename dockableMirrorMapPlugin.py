@@ -71,6 +71,7 @@ class DockableMirrorMapPlugin:
 	def removeDockableMirrors(self):
 		for d in list(self.dockableMirrors):
 			d.close()
+			self.iface.removeDockWidget(d)
 		self.dockableMirrors = []
 		self.lastDockableMirror = 0
 
