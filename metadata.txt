@@ -8,7 +8,7 @@ about=The plugin is able to add one or more extra panels in the main window
     it is possible to add currently selected layers or groups. The additional
     canvases are synchronized with the main map canvas.
 
-version=0.5
+version=0.5.1
 qgisMinimumVersion=2.0
 
 ; not used yet, will allow to put a plugin in the right menu
@@ -21,7 +21,9 @@ email=info@faunalia.eu
 
 ; start of optional metadata
 
-changelog=0.5
+changelog=0.5.1
+    Fixed crashes when opening a project on Windows
+    0.5
     Optionally set labels of individual mirror maps
     0.4
     Add/remove layer groups (from QGIS 2.4), multiple styles for layers (from QGIS 2.12)
